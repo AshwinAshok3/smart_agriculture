@@ -1,0 +1,20 @@
+this is for the final UI design for different formats of inputs.
+
+* temparature ----> 0C        - 27        - 60C
+* moisture -------> 0.22      - 0.61      - 0.97
+* rainfall -------> -85       - 111       - 411.95
+* ph  ------------> 3.44      - 6.37      - 9.56
+* nitrogen -------> 35.52     - 61.27     - 98.58
+* phosphorous ----> -37.64    - 69.58     - 177.31
+* potassium ------> -20.509   - 69.72     - 161.06
+carbon ---------> -0.28     - 1.47      - 3.24
+
+Finalized Dataset ---> Crop_Yield_Fertilizers
+N               ----> 0.0       -   50.63   -   140, 
+P               ----> 0.0       -   53.26   -   145, 
+K               ----> 0.0       -   42.91   -   205, 
+temparature     ----> 8.825     -   25.65   -   45.0,
+humidity        ----> 14.25     -   71.58   -   100.0,
+ph              ----> 3.5       -   6.47    -   9.93,
+rainfall        ----> 20.0      -   104.01  -   300.0,
+yield           ----> 20.0      -   51.498  -   99.67
