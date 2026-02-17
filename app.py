@@ -135,6 +135,20 @@ def get_fertilizer_composition(fert_name):
     }
     return compositions.get(fert_name, compositions["Generic"])
 
+def get_heatmap(z, x, y, colorscale='Viridis'):
+    """
+    Creates a heatmap for sensitivity analysis.
+    """
+    fig = go.Heatmap(
+        z=z,
+        x=x,
+        y=y,
+        colorscale=colorscale,
+        colorbar=dict(title="Revenue (₹)"),
+        hovertemplate="Price: ₹%{x}<br>Yield: %{y} kg/ha<br>Revenue: ₹%{z:,.0f}<extra></extra>"
+    )
+    return fig
+
 # ==============================================================================
 # 4. LOAD ASSETS
 # ==============================================================================
@@ -271,52 +285,103 @@ if artifacts:
 
         # TAB 2: FINANCIAL MODEL
         with tab_market:
+            st.subheader("💰 Profitability & Risk Analysis")
+            st.markdown("Analyze how **Market Price** and **Yield Variation** affect your total revenue.")
+            
             col_m1, col_m2 = st.columns([1, 2])
             with col_m1:
-                st.subheader("Revenue Calculator")
-                st.info("Adjust values below.")
-                # Interactive sliders (Session State preserves values)
-                market_price = st.slider(f"Current {best_crop} Price (₹/kg)", 10, 200, 45)
-                area = st.number_input("Farm Area (Acres)", 1.0, 100.0, 5.0)
+                st.info("Adjust the base parameters to simulate different scenarios.")
                 
-                total_rev = est_yield * (area * 0.404) * market_price
-                st.metric("ESTIMATED GROSS REVENUE", f"₹ {total_rev:,.0f}")
+                # Interactive sliders
+                base_price = st.slider(f"Base Price for {best_crop} (₹/kg)", 10, 200, 45)
+                base_yield = est_yield # From crop profile
+                farm_area = st.number_input("Farm Area (Acres)", 1.0, 100.0, 5.0)
+                
+                # Conversion: 1 Acre = 0.4047 Hectares
+                area_in_ha = farm_area * 0.4047
+                
+                # Current Scenario Calculation
+                current_revenue = base_yield * area_in_ha * base_price
+                st.metric("ESTIMATED GROSS REVENUE", f"₹ {current_revenue:,.0f}", delta=None)
                 
             with col_m2:
-                # Revenue Chart
-                prices = np.linspace(market_price * 0.5, market_price * 1.5, 10)
-                revenues = [est_yield * (area * 0.404) * p for p in prices]
+                # --- SENSITIVITY ANALYSIS HEATMAP ---
+                # Generate ranges for Price (+/- 20%) and Yield (+/- 20%)
+                price_range = np.linspace(base_price * 0.8, base_price * 1.2, 10)
+                yield_range = np.linspace(base_yield * 0.8, base_yield * 1.2, 10)
                 
-                fig_rev = px.area(
-                    x=prices, y=revenues, 
-                    title="Revenue Potential vs Market Price",
-                    labels={'x': 'Market Price (₹)', 'y': 'Total Revenue (₹)'}
+                # Create Grid
+                z_data = [] # Revenue matrix
+                for y_val in yield_range:
+                    row = []
+                    for p_val in price_range:
+                        rev = y_val * area_in_ha * p_val
+                        row.append(rev)
+                    z_data.append(row)
+                
+                # Create Heatmap
+                fig_heat = go.Figure(data=get_heatmap(
+                    z=z_data,
+                    x=np.round(price_range, 1),
+                    y=np.round(yield_range, 0),
+                    colorscale='Greens'
+                ))
+                
+                fig_heat.update_layout(
+                    title="Revenue Sensitivity (Yield vs Price)",
+                    xaxis_title="Market Price (₹/kg)",
+                    yaxis_title="Yield (kg/ha)",
+                    height=400
                 )
-                fig_rev.update_traces(line_color='#2e7d32', fillcolor='rgba(46, 125, 50, 0.2)')
-                fig_rev.update_layout(plot_bgcolor='white', paper_bgcolor='white', font={'color': '#2c3e50'})
-                st.plotly_chart(fig_rev, use_container_width=True)
+                st.plotly_chart(fig_heat, use_container_width=True)
 
         # TAB 3: NUTRIENT MATRIX
         with tab_fert:
-            col_f1, col_f2 = st.columns(2)
+            st.subheader("🔬 Fertilizer Chemical Composition")
+            st.markdown("Compare the nutrient profile of recommended fertilizers.")
+
+            col_f1, col_f2 = st.columns([1, 2])
+            
             with col_f1:
-                st.subheader(f"{best_fert} Composition")
-                comp = get_fertilizer_composition(best_fert)
-                df_comp = pd.DataFrame(list(comp.items()), columns=['Component', 'Percentage'])
+                st.info("Select a fertilizer to view its composition.")
                 
-                fig_donut = px.pie(df_comp, values='Percentage', names='Component', hole=0.7, 
-                                 title="Chemical Composition",
-                                 color_discrete_sequence=['#66bb6a', '#43a047', '#1b5e20', '#a5d6a7'])
-                fig_donut.update_layout(showlegend=True, paper_bgcolor='white')
-                st.plotly_chart(fig_donut, use_container_width=True)
+                # Create a clearer list for the selectbox
+                fert_options = [f[0] for f in results['top_ferts']]
+                selected_fert_name = st.radio("Select Fertilizer:", fert_options)
                 
+                # Get probability for the selected one
+                sel_prob = next(item[1] for item in results['top_ferts'] if item[0] == selected_fert_name)
+                st.metric("Recommendation Score", f"{float(sel_prob)*100:.1f}%")
+
             with col_f2:
-                st.subheader("Supply Chain Backups")
-                st.markdown("Alternative fertilizers if primary is unavailable.")
+                # --- RADAR CHART for Composition ---
+                comp_data = get_fertilizer_composition(selected_fert_name)
                 
-                for i, (fert, prob) in enumerate(results['top_ferts'][1:], 1):
-                    safe_prob = float(prob) # Cast to float for Streamlit
-                    st.progress(safe_prob, text=f"Backup Option {i}: {fert} ({safe_prob*100:.1f}%)")
+                # Prepare data for Radar Chart
+                categories = list(comp_data.keys())
+                values = list(comp_data.values())
+                
+                fig_radar = go.Figure()
+
+                fig_radar.add_trace(go.Scatterpolar(
+                    r=values,
+                    theta=categories,
+                    fill='toself',
+                    name=selected_fert_name,
+                    line_color='#2e7d32'
+                ))
+
+                fig_radar.update_layout(
+                    polar=dict(
+                        radialaxis=dict(
+                            visible=True,
+                            range=[0, 100]
+                        )),
+                    showlegend=False,
+                    title=f"Nutrient Profile: {selected_fert_name}"
+                )
+                
+                st.plotly_chart(fig_radar, use_container_width=True)
 
     else:
         # IDLE STATE
