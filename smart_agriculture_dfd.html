@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Agriculture System - Data Flow Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 1200px;
+            overflow-x: auto;
+        }
+
+        .legend {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Smart Agriculture System DFD</h1>
+    <p>Data Flow Diagram representing the logic within <code>app.py</code> and <code>src/</code> modules.</p>
+
+    <div class="container">
+        <div class="mermaid">
+            flowchart TD
+            %% Styles
+            classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+            classDef process fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+            classDef store fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+            classDef boundary fill:none,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+
+            %% External Entities
+            User[👤 User / Farmer]:::entity
+            Dev[👨‍💻 Developer / Trainer]:::entity
+
+            %% Data Stores
+            D_Models[("💾 D1: Model Artifacts<br>(.pkl files)")]:::store
+            D_Profiles[("📄 D2: Crop Profiles<br>(.csv)")]:::store
+            D_Session[("🧠 D3: Session State<br>(Runtime Memory)")]:::store
+
+            %% Processes
+            subgraph App_Runtime [Application Runtime (Streamlit)]
+            P1(1.0 Input Collection):::process
+            P2(2.0 Load Models & Resources):::process
+            P3(3.0 Crop Prediction):::process
+            P4(4.0 Fertilizer Prediction):::process
+            P5(5.0 Dashboard Visualization):::process
+            end
+
+            subgraph Training_Pipeline [Offline Training Pipeline]
+            T1(0.1 Train Models):::process
+            end
+
+            %% Data Flows
+            Dev -->|Raw Data & Logic| T1
+            T1 -->|Save Models/Encoders| D_Models
+            T1 -->|Save Profiles| D_Profiles
+
+            User -->|Soil Parameters<br>(N, P, K, pH, Temp, etc.)| P1
+
+            P1 -->|User Input DF| P3
+            P1 -->|User Input DF| P4
+
+            D_Models -->|Load XGBoost Models| P2
+            D_Profiles -->|Load Ideal Defaults| P2
+            P2 -->|Model Objects| P3
+            P2 -->|Model Objects| P4
+            P2 -->|Profile Data| P5
+
+            P3 -->|Top 3 Crops & Conf%| D_Session
+            D_Session -->|Best Crop Label| P4
+
+            P4 -->|Recommended Fertilizer| D_Session
+
+            D_Session -->|Analysis Results| P5
+            P1 -->|Input Values| P5
+
+            P5 -->|Gauge Charts (Soil Health)| User
+            P5 -->|Profitability Heatmap| User
+            P5 -->|Nutrient Radar Chart| User
+
+        </div>
+    </div>
+
+    <div class="legend">
+        <strong>Legend:</strong>
+        👤 External Entity |
+        ⚡ Process |
+        💾 Data Store
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+
+</html>
