@@ -4,118 +4,463 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Agriculture System - Data Flow Diagram</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <title>Smart Agriculture System - Interactive DFD</title>
+    <!-- Use a reliable CDN for Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <!-- Use a reliable CDN for SVG Pan Zoom -->
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            color: #2c3e50;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            /* Prevent body scroll */
         }
 
         h1 {
             color: #2e7d32;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
+            text-align: center;
+            font-size: 1.8em;
+        }
+
+        p.description {
+            color: #666;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.95em;
         }
 
         .container {
+            flex: 1;
+            width: 100%;
+            max-width: 1600px;
+            /* Increased max-width */
             background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 1200px;
-            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            /* Important for pan-zoom */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            /* For absolute positioning of controls */
+            border: 1px solid #e0e0e0;
         }
 
-        .legend {
-            margin-top: 20px;
+        /* Ensure the mermaid div takes full space for the SVG to render nicely */
+        .mermaid {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Zoom Controls Styling */
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            /* Vertical stack */
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .btn {
+            background-color: #ffffff;
+            color: #2e7d32;
+            border: 1px solid #2e7d32;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+
+        .btn:hover {
+            background-color: #2e7d32;
+            color: white;
+        }
+
+        /* Legend Styling */
+        .legend-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            border: 1px solid #eee;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 8px;
             font-size: 0.9em;
-            color: #666;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            /* Slightly rounded squares */
+            display: inline-block;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .modal-title {
+            margin: 0;
+            color: #2e7d32;
+            font-size: 1.4em;
+        }
+
+        .modal-body {
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            font-size: 1.2em;
+            color: #2e7d32;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Smart Agriculture System DFD</h1>
-    <p>Data Flow Diagram representing the logic within <code>app.py</code> and <code>src/</code> modules.</p>
+    <h1>Smart Agriculture System - DFD</h1>
+    <p class="description">
+        Interactive Data Flow Diagram.
+        <strong>Scroll</strong> to zoom, <strong>Drag</strong> to pan,
+        <strong>Click</strong> nodes for details.
+    </p>
 
-    <div class="container">
-        <div class="mermaid">
+    <div class="container" id="diagram-container">
+
+        <!-- Loading State -->
+        <div id="loading" class="loading-overlay">
+            Loading Diagram...
+        </div>
+
+        <div class="mermaid" id="mermaid-diagram">
+            %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#e8f5e9', 'edgeLabelBackground':'#fff',
+            'tertiaryColor': '#fff', 'fontFamily': 'Segoe UI'}}}%%
             flowchart TD
             %% Styles
-            classDef entity fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-            classDef process fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-            classDef store fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-            classDef boundary fill:none,stroke:#999,stroke-width:2px,stroke-dasharray: 5 5;
+            classDef entity fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,rx:5,ry:5,color:#0d47a1;
+            classDef process fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,rx:5,ry:5,color:#1b5e20,cursor:pointer;
+            classDef store fill:#fff3e0,stroke:#ef6c00,stroke-width:2px,rx:0,ry:0,color:#e65100;
+            classDef pipeline fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
 
             %% External Entities
-            User[👤 User / Farmer]:::entity
-            Dev[👨‍💻 Developer / Trainer]:::entity
+            User["👤 User / Farmer"]:::entity
+            Dev["👨‍💻 Developer / Trainer"]:::entity
 
             %% Data Stores
-            D_Models[("💾 D1: Model Artifacts<br>(.pkl files)")]:::store
-            D_Profiles[("📄 D2: Crop Profiles<br>(.csv)")]:::store
-            D_Session[("🧠 D3: Session State<br>(Runtime Memory)")]:::store
+            D_Models[("💾 D1: Model Artifacts<br>[.pkl files]")]:::store
+            D_Profiles[("📄 D2: Crop Profiles<br>[.csv]")]:::store
+            D_Session[("🧠 D3: Session State<br>[Runtime Memory]")]:::store
 
-            %% Processes
-            subgraph App_Runtime [Application Runtime (Streamlit)]
-            P1(1.0 Input Collection):::process
-            P2(2.0 Load Models & Resources):::process
-            P3(3.0 Crop Prediction):::process
-            P4(4.0 Fertilizer Prediction):::process
-            P5(5.0 Dashboard Visualization):::process
+            %% Application Runtime Subgraph
+            subgraph App_Runtime ["Application Runtime - Streamlit"]
+            direction TB
+            P1("1.0 Input Collection"):::process
+            P2("2.0 Load Models & Resources"):::process
+            P3("3.0 Crop Prediction"):::process
+            P4("4.0 Fertilizer Prediction"):::process
+            P5("5.0 Dashboard Visualization"):::process
             end
 
-            subgraph Training_Pipeline [Offline Training Pipeline]
-            T1(0.1 Train Models):::process
+            %% Training Pipeline Subgraph
+            subgraph Training_Pipeline ["Offline Training Pipeline"]
+            direction TB
+            T1("0.1 Train Models"):::process
             end
 
-            %% Data Flows
+            %% Data Flows - Developer Side
             Dev -->|Raw Data & Logic| T1
             T1 -->|Save Models/Encoders| D_Models
             T1 -->|Save Profiles| D_Profiles
 
-            User -->|Soil Parameters<br>(N, P, K, pH, Temp, etc.)| P1
-
+            %% Data Flows - User Side
+            User -->|Soil Parameters - N, P, K, pH, etc.| P1
             P1 -->|User Input DF| P3
             P1 -->|User Input DF| P4
 
-            D_Models -->|Load XGBoost Models| P2
-            D_Profiles -->|Load Ideal Defaults| P2
-            P2 -->|Model Objects| P3
-            P2 -->|Model Objects| P4
-            P2 -->|Profile Data| P5
+            %% App Internals (Dotted lines for clarity)
+            D_Models -.->|Load XGBoost Models| P2
+            D_Profiles -.->|Load Ideal Defaults| P2
+
+            P2 -.->|Model Objects| P3
+            P2 -.->|Model Objects| P4
+            P2 -.->|Profile Data| P5
 
             P3 -->|Top 3 Crops & Conf%| D_Session
             D_Session -->|Best Crop Label| P4
-
             P4 -->|Recommended Fertilizer| D_Session
 
-            D_Session -->|Analysis Results| P5
             P1 -->|Input Values| P5
+            D_Session -->|Analysis Results| P5
 
-            P5 -->|Gauge Charts (Soil Health)| User
+            %% Outputs to User
+            P5 -->|Gauge Charts - Soil Health| User
             P5 -->|Profitability Heatmap| User
             P5 -->|Nutrient Radar Chart| User
 
+            %% Click Events
+            click P1 callback "Input Collection"
+            click P2 callback "Load Resources"
+            click P3 callback "Crop Prediction"
+            click P4 callback "Fertilizer Prediction"
+            click P5 callback "Dashboard Viz"
+            click T1 callback "Model Training"
+        </div>
+
+        <!-- Legend Overlay -->
+        <div class="legend-container">
+            <div class="legend-title">Legend</div>
+            <div class="legend-item"><span class="dot" style="background:#e3f2fd; border:2px solid #1565c0"></span>
+                Entity</div>
+            <div class="legend-item"><span class="dot" style="background:#e8f5e9; border:2px solid #2e7d32"></span>
+                Process (Clickable)</div>
+            <div class="legend-item"><span class="dot" style="background:#fff3e0; border:2px solid #ef6c00"></span> Data
+                Store</div>
+        </div>
+
+        <!-- Zoom Controls Overlay -->
+        <div class="controls">
+            <button class="btn" onclick="zoomIn()" title="Zoom In">+</button>
+            <button class="btn" onclick="zoomOut()" title="Zoom Out">-</button>
+            <button class="btn" onclick="resetZoom()" title="Reset View">⟲</button>
         </div>
     </div>
 
-    <div class="legend">
-        <strong>Legend:</strong>
-        👤 External Entity |
-        ⚡ Process |
-        💾 Data Store
+    <!-- Details Modal -->
+    <div id="details-modal" class="modal-overlay">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Details</h3>
+            </div>
+            <div class="modal-body" id="modal-content">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
     </div>
 
     <script>
-        mermaid.initialize({ startOnLoad: true });
+        // Data Dictionary for Process Details
+        const processDetails = {
+            "P1": {
+                title: "1.0 Input Collection",
+                desc: "Collects soil parameters (N, P, K, pH) and environmental data (Temperature, Humidity, Rainfall) from the user interface via Streamlit widgets."
+            },
+            "P2": {
+                title: "2.0 Load Models & Resources",
+                desc: "Loads pre-trained XGBoost classifiers (`xgb_pipeline.pkl`) and encoders (`label_encoder.pkl`) from disk into session state memory."
+            },
+            "P3": {
+                title: "3.0 Crop Prediction",
+                desc: "Uses the loaded XGBoost model to predict the most suitable crop based on the input soil parameters. Returns top 3 probabilities."
+            },
+            "P4": {
+                title: "4.0 Fertilizer Prediction",
+                desc: "Takes the predicted crop and soil parameters to recommend an appropriate fertilizer mix using a secondary classification model."
+            },
+            "P5": {
+                title: "5.0 Dashboard Visualization",
+                desc: "Generates interactive Plotly charts: Gauge charts for nutrients, Heatmaps for profitability scenarios, and Radar charts for fertilizer composition."
+            },
+            "T1": {
+                title: "0.1 Train Models",
+                desc: "Offline process executed by the developer. Cleans raw data, trains XGBoost models, and serializes them to `.pkl` files."
+            }
+        };
+
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'loose',
+            flowchart: { useMaxWidth: false, htmlLabels: true }
+        });
+
+        let panZoomInstance;
+
+        async function renderDiagram() {
+            try {
+                const element = document.querySelector('#mermaid-diagram');
+                const graphDefinition = element.textContent;
+
+                // Render SVG
+                const { svg } = await mermaid.render('graphDiv', graphDefinition);
+                element.innerHTML = svg;
+
+                // Setup SVG Pan Zoom
+                const svgElement = element.querySelector('svg');
+                svgElement.style.width = '100%';
+                svgElement.style.height = '100%';
+
+                panZoomInstance = svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.5,
+                    maxZoom: 10,
+                    dblClickZoomEnabled: false // Prevent interference with click events
+                });
+
+                // Hide loading overlay
+                document.getElementById('loading').style.display = 'none';
+
+            } catch (error) {
+                console.error("Mermaid Rendering Error:", error);
+                document.getElementById('loading').innerHTML = `
+                    <div style="color:red; text-align:center;">
+                        Error loading diagram.<br>
+                        <small>${error.message}</small>
+                    </div>`;
+            }
+        }
+
+        // --- Interaction Functions ---
+
+        // Global callback function called by Mermaid click events
+        // Note: Mermaid calls this with the node ID as the first argument
+        window.callback = function (nodeId) {
+            console.log('Clicked node:', nodeId);
+            const details = processDetails[nodeId];
+
+            if (details) {
+                document.getElementById('modal-title').innerText = details.title;
+                document.getElementById('modal-content').innerText = details.desc;
+                document.getElementById('details-modal').style.display = 'flex';
+            }
+        };
+
+        function closeModal() {
+            document.getElementById('details-modal').style.display = 'none';
+        }
+
+        // Close modal on outside click
+        document.getElementById('details-modal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Zoom Control Wrappers
+        function zoomIn() { if (panZoomInstance) panZoomInstance.zoomIn(); }
+        function zoomOut() { if (panZoomInstance) panZoomInstance.zoomOut(); }
+        function resetZoom() { if (panZoomInstance) panZoomInstance.reset(); }
+
+        // Start Rendering on Load
+        window.addEventListener('load', renderDiagram);
+
     </script>
 </body>
 
